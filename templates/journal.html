@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Journal Entry - {{ day }} {{ ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][month] }} {{ year }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Caveat:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        /* Journal-specific styles */
+        body.journal-page {
+            background: #faf8f3;
+            padding: 0;
+            margin: 0;
+        }
+
+        .journal-container {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: #faf8f3;
+        }
+
+        .journal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px 20px;
+            background: #fff9e6;
+            border-bottom: 2px solid #d4a574;
+            flex-shrink: 0;
+        }
+
+        .journal-title {
+            font-family: 'Caveat', cursive;
+            font-size: 24px;
+            font-weight: 600;
+            color: #3e2723;
+            flex: 1;
+            text-align: center;
+        }
+
+        .done-btn {
+            font-family: 'Patrick Hand', cursive;
+            font-size: 18px;
+            padding: 8px 20px;
+            background: #f57c00;
+            color: white;
+            text-decoration: none;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .done-btn:hover {
+            background: #e65100;
+            transform: translateY(-1px);
+        }
+
+        .journal-info {
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #fff9e6;
+            border-bottom: 1px solid #e0d5c7;
+            flex-shrink: 0;
+        }
+
+        .word-count {
+            font-family: 'Patrick Hand', cursive;
+            font-size: 14px;
+            color: #8b7355;
+        }
+
+        .save-status {
+            font-family: 'Patrick Hand', cursive;
+            font-size: 14px;
+            color: #4caf50;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .save-status.show {
+            opacity: 1;
+        }
+
+        .journal-content {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .journal-textarea {
+            width: 100%;
+            height: 100%;
+            border: none;
+            outline: none;
+            resize: none;
+            font-family: 'Patrick Hand', cursive;
+            font-size: 18px;
+            line-height: 1.6;
+            color: #3e2723;
+            background: transparent;
+            padding: 0;
+        }
+
+        .journal-textarea::placeholder {
+            color: #bdbdbd;
+            font-style: italic;
+        }
+
+        /* Mobile optimizations */
+        @media (max-width: 768px) {
+            .journal-header {
+                padding: 12px 15px;
+            }
+
+            .journal-title {
+                font-size: 20px;
+            }
+
+            .done-btn {
+                font-size: 16px;
+                padding: 6px 16px;
+            }
+
+            .journal-content {
+                padding: 15px;
+            }
+
+            .journal-textarea {
+                font-size: 16px;
+            }
+        }
+
+        /* Scrollbar for journal */
+        .journal-content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .journal-content::-webkit-scrollbar-track {
+            background: #e0d5c7;
+            border-radius: 4px;
+        }
+
+        .journal-content::-webkit-scrollbar-thumb {
+            background: #8b7355;
+            border-radius: 4px;
+        }
+
+        .journal-content::-webkit-scrollbar-thumb:hover {
+            background: #5d4037;
+        }
+    </style>
+</head>
+<body class="journal-page">
+    <div class="journal-container">
+        <!-- Header with Done button -->
+        <div class="journal-header">
+            <div style="width: 80px;"></div> <!-- Spacer for centering -->
+            <h1 class="journal-title">{{ day }}{{ 'st' if day in [1, 21, 31] else 'nd' if day in [2, 22] else 'rd' if day in [3, 23] else 'th' }} {{ ['', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][month] }} {{ year }}</h1>
+            <a href="/?year={{ year }}&month={{ month }}" class="done-btn">Done</a>
+        </div>
+
+        <!-- Word count and save status -->
+        <div class="journal-info">
+            <span class="word-count" id="wordCount">0 words</span>
+            <span class="save-status" id="saveStatus">Saved ✓</span>
+        </div>
+
+        <!-- Journal textarea -->
+        <div class="journal-content">
+            <textarea 
+                class="journal-textarea" 
+                id="journalText"
+                placeholder="How was your day? What happened? How do you feel?"
+                data-year="{{ year }}"
+                data-month="{{ month }}"
+                data-day="{{ day }}"
+            >{{ entry.detailed_journal or '' }}</textarea>
+        </div>
+    </div>
+
+    <script>
+        const textarea = document.getElementById('journalText');
+        const wordCountEl = document.getElementById('wordCount');
+        const saveStatusEl = document.getElementById('saveStatus');
+        
+        let saveTimeout;
+        let lastSavedText = textarea.value;
+
+        // Update word count
+        function updateWordCount() {
+            const text = textarea.value.trim();
+            const words = text ? text.split(/\s+/).length : 0;
+            wordCountEl.textContent = `${words} word${words !== 1 ? 's' : ''}`;
+        }
+
+        // Save journal entry
+        function saveJournal() {
+            const year = textarea.dataset.year;
+            const month = textarea.dataset.month;
+            const day = textarea.dataset.day;
+            const text = textarea.value;
+
+            // Don't save if text hasn't changed
+            if (text === lastSavedText) return;
+
+            fetch('/api/save-journal', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    year: parseInt(year),
+                    month: parseInt(month),
+                    day: parseInt(day),
+                    text: text
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    lastSavedText = text;
+                    // Show save indicator
+                    saveStatusEl.classList.add('show');
+                    setTimeout(() => {
+                        saveStatusEl.classList.remove('show');
+                    }, 2000);
+                }
+            })
+            .catch(error => {
+                console.error('Error saving journal:', error);
+            });
+        }
+
+        // Auto-save on input
+        textarea.addEventListener('input', function() {
+            updateWordCount();
+            
+            // Clear previous timeout
+            clearTimeout(saveTimeout);
+            
+            // Save after 1 second of no typing
+            saveTimeout = setTimeout(() => {
+                saveJournal();
+            }, 1000);
+        });
+
+        // Initial word count
+        updateWordCount();
+
+        // Save on page unload
+        window.addEventListener('beforeunload', function() {
+            if (textarea.value !== lastSavedText) {
+                saveJournal();
+            }
+        });
+
+        // Auto-focus textarea on load (mobile friendly)
+        setTimeout(() => {
+            textarea.focus();
+        }, 300);
+    </script>
+</body>
+</html>

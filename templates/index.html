@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Habit Tracker Journal</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Caveat:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="hardbound-border">
+        <div class="book">
+            <!-- Current Month Page (70%) -->
+            <div class="page current-page">
+                <div class="page-header">
+                    <div class="header-content">
+                        <h1 class="month-title">{{ ['', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][current_month] }} {{ current_year }}</h1>
+                        
+                        <!-- HABIT HEADERS IN TITLE AREA -->
+                        <div class="habits-header-top">
+                            {% for habit in month_data.habits %}
+                            <div class="habit-column-header" 
+                                 contenteditable="true"
+                                 data-habit-number="{{ habit.habit_number }}"
+                                 data-year="{{ current_year }}"
+                                 data-month="{{ current_month }}">{{ habit.habit_name }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="page-content">
+                    <!-- Daily Memories Column (Left 60%) -->
+                    <div class="memories-section">
+                        <h3 class="section-header">Daily Memories</h3>
+                        {% for entry in month_data.entries %}
+                        {% set month_abbr = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][current_month] %}
+                        <div class="memory-row" data-day="{{ entry.day }}">
+                            <span class="day-number">{{ entry.day }}{{ 'st' if entry.day in [1, 21, 31] else 'nd' if entry.day in [2, 22] else 'rd' if entry.day in [3, 23] else 'th' }} {{ month_abbr }}{% if entry.day_name %}, {{ entry.day_name }}{% endif %}</span>
+                            <input type="text" 
+                                   class="memory-input" 
+                                   placeholder="What happened today?"
+                                   value="{{ entry.one_liner or '' }}"
+                                   data-year="{{ current_year }}"
+                                   data-month="{{ current_month }}"
+                                   data-day="{{ entry.day }}">
+                            <a href="/journal/{{ current_year }}/{{ current_month }}/{{ entry.day }}" 
+                               class="journal-icon {% if entry.word_count > 100 %}has-entry{% elif entry.day < today.day and current_year == today.year and current_month == today.month and not entry.detailed_journal %}no-entry-past{% endif %}"
+                               data-year="{{ current_year }}"
+                               data-month="{{ current_month }}"
+                               data-day="{{ entry.day }}">
+                                <span class="eye-icon">👁️</span>
+                            </a>
+                        </div>
+                        {% endfor %}
+
+                        
+                        <!-- Row 32: Best Day Selector -->
+                        <div class="best-day-row">
+                            <span class="best-day-label">Best Day:</span>
+                            <select class="best-day-select" 
+                                    data-year="{{ current_year }}"
+                                    data-month="{{ current_month }}">
+                                <option value="">Select...</option>
+                                {% for day in range(1, 32) %}
+                                <option value="{{ day }}" {% if month_data.month_info.best_day == day %}selected{% endif %}>Day {{ day }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Habits Section (Right 40%) - NO HEADERS HERE -->
+                    <div class="habits-section">
+                        <div class="habits-grid">
+                            {% for entry in month_data.entries %}
+                            <div class="habit-row" data-day="{{ entry.day }}">
+                                <div class="habit-check {% if entry.habit1 %}checked{% endif %}"
+                                     data-year="{{ current_year }}"
+                                     data-month="{{ current_month }}"
+                                     data-day="{{ entry.day }}"
+                                     data-habit="1">
+                                    <span class="checkmark">✓</span>
+                                </div>
+                                <div class="habit-check {% if entry.habit2 %}checked{% endif %}"
+                                     data-year="{{ current_year }}"
+                                     data-month="{{ current_month }}"
+                                     data-day="{{ entry.day }}"
+                                     data-habit="2">
+                                    <span class="checkmark">✓</span>
+                                </div>
+                                <div class="habit-check {% if entry.habit3 %}checked{% endif %}"
+                                     data-year="{{ current_year }}"
+                                     data-month="{{ current_month }}"
+                                     data-day="{{ entry.day }}"
+                                     data-habit="3">
+                                    <span class="checkmark">✓</span>
+                                </div>
+                                <div class="habit-check {% if entry.habit4 %}checked{% endif %}"
+                                     data-year="{{ current_year }}"
+                                     data-month="{{ current_month }}"
+                                     data-day="{{ entry.day }}"
+                                     data-habit="4">
+                                    <span class="checkmark">✓</span>
+                                </div>
+                                <div class="habit-check {% if entry.habit5 %}checked{% endif %}"
+                                     data-year="{{ current_year }}"
+                                     data-month="{{ current_month }}"
+                                     data-day="{{ entry.day }}"
+                                     data-habit="5">
+                                    <span class="checkmark">✓</span>
+                                </div>
+                            </div>
+                            {% endfor %}
+                            
+                            <!-- Empty row for Best Day alignment -->
+                            <div class="habit-row best-day-spacer"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Next Month Page (30% - Desktop Only) -->
+            <div class="page next-page desktop-only">
+                <div class="page-header">
+                    <h1 class="month-title">{{ ['', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][next_month] }} {{ next_year }}</h1>
+                </div>
+                
+                <div class="page-content">
+                    <div class="preview-message">
+                        <p>Next month preview</p>
+                        <button class="navigate-btn" onclick="window.location.href='/?year={{ next_year }}&month={{ next_month }}'">
+                            Go to {{ ['', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][next_month] }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Navigation Buttons -->
+            <div class="navigation">
+                <button class="nav-btn prev-btn" onclick="window.location.href='/?year={{ prev_year }}&month={{ prev_month }}'">
+                    <span>‹</span>
+                </button>
+                <button class="nav-btn next-btn" onclick="window.location.href='/?year={{ next_year }}&month={{ next_month }}'">
+                    <span>›</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
+
