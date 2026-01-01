@@ -45,90 +45,95 @@ def init_db():
     conn = get_db_connection()
     cur = conn.cursor()
 
-    if USE_POSTGRES:
-        # Months table
-        cur.execute('''
-            CREATE TABLE IF NOT EXISTS months (
-                id SERIAL PRIMARY KEY,
-                year INTEGER NOT NULL,
-                month INTEGER NOT NULL,
-                best_day INTEGER,
-                UNIQUE(year, month)
-            )
-        ''')
+    try:
+        if USE_POSTGRES:
+            # Months table
+            cur.execute('''
+                CREATE TABLE IF NOT EXISTS months (
+                    id SERIAL PRIMARY KEY,
+                    year INTEGER NOT NULL,
+                    month INTEGER NOT NULL,
+                    best_day INTEGER,
+                    UNIQUE(year, month)
+                )
+            ''')
 
-        # Habits table (5 habits per month)
-        cur.execute('''
-            CREATE TABLE IF NOT EXISTS habits (
-                id SERIAL PRIMARY KEY,
-                month_id INTEGER REFERENCES months(id) ON DELETE CASCADE,
-                habit_number INTEGER NOT NULL,
-                habit_name TEXT,
-                UNIQUE(month_id, habit_number)
-            )
-        ''')
+            # Habits table (5 habits per month)
+            cur.execute('''
+                CREATE TABLE IF NOT EXISTS habits (
+                    id SERIAL PRIMARY KEY,
+                    month_id INTEGER REFERENCES months(id) ON DELETE CASCADE,
+                    habit_number INTEGER NOT NULL,
+                    habit_name TEXT,
+                    UNIQUE(month_id, habit_number)
+                )
+            ''')
 
-        # Daily entries table
-        cur.execute('''
-            CREATE TABLE IF NOT EXISTS daily_entries (
-                id SERIAL PRIMARY KEY,
-                month_id INTEGER REFERENCES months(id) ON DELETE CASCADE,
-                day INTEGER NOT NULL,
-                one_liner TEXT,
-                detailed_journal TEXT,
-                word_count INTEGER DEFAULT 0,
-                habit1 INTEGER DEFAULT 0,
-                habit2 INTEGER DEFAULT 0,
-                habit3 INTEGER DEFAULT 0,
-                habit4 INTEGER DEFAULT 0,
-                habit5 INTEGER DEFAULT 0,
-                UNIQUE(month_id, day),
-                FOREIGN KEY (month_id) REFERENCES months(id) ON DELETE CASCADE
-            )
-        ''')
-    else:
-        # SQLite version
-        cur.execute('''
-            CREATE TABLE IF NOT EXISTS months (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                year INTEGER NOT NULL,
-                month INTEGER NOT NULL,
-                best_day INTEGER,
-                UNIQUE(year, month)
-            )
-        ''')
+            # Daily entries table
+            cur.execute('''
+                CREATE TABLE IF NOT EXISTS daily_entries (
+                    id SERIAL PRIMARY KEY,
+                    month_id INTEGER REFERENCES months(id) ON DELETE CASCADE,
+                    day INTEGER NOT NULL,
+                    one_liner TEXT,
+                    detailed_journal TEXT,
+                    word_count INTEGER DEFAULT 0,
+                    habit1 INTEGER DEFAULT 0,
+                    habit2 INTEGER DEFAULT 0,
+                    habit3 INTEGER DEFAULT 0,
+                    habit4 INTEGER DEFAULT 0,
+                    habit5 INTEGER DEFAULT 0,
+                    UNIQUE(month_id, day),
+                    FOREIGN KEY (month_id) REFERENCES months(id) ON DELETE CASCADE
+                )
+            ''')
+        else:
+            # SQLite version - same as before
+            cur.execute('''
+                CREATE TABLE IF NOT EXISTS months (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    year INTEGER NOT NULL,
+                    month INTEGER NOT NULL,
+                    best_day INTEGER,
+                    UNIQUE(year, month)
+                )
+            ''')
 
-        cur.execute('''
-            CREATE TABLE IF NOT EXISTS habits (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                month_id INTEGER,
-                habit_number INTEGER NOT NULL,
-                habit_name TEXT,
-                UNIQUE(month_id, habit_number),
-                FOREIGN KEY (month_id) REFERENCES months(id) ON DELETE CASCADE
-            )
-        ''')
+            cur.execute('''
+                CREATE TABLE IF NOT EXISTS habits (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    month_id INTEGER,
+                    habit_number INTEGER NOT NULL,
+                    habit_name TEXT,
+                    UNIQUE(month_id, habit_number),
+                    FOREIGN KEY (month_id) REFERENCES months(id) ON DELETE CASCADE
+                )
+            ''')
 
-        cur.execute('''
-            CREATE TABLE IF NOT EXISTS daily_entries (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                month_id INTEGER,
-                day INTEGER NOT NULL,
-                one_liner TEXT,
-                detailed_journal TEXT,
-                word_count INTEGER DEFAULT 0,
-                habit1 INTEGER DEFAULT 0,
-                habit2 INTEGER DEFAULT 0,
-                habit3 INTEGER DEFAULT 0,
-                habit4 INTEGER DEFAULT 0,
-                habit5 INTEGER DEFAULT 0,
-                UNIQUE(month_id, day),
-                FOREIGN KEY (month_id) REFERENCES months(id) ON DELETE CASCADE
-            )
-        ''')
+            cur.execute('''
+                CREATE TABLE IF NOT EXISTS daily_entries (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    month_id INTEGER,
+                    day INTEGER NOT NULL,
+                    one_liner TEXT,
+                    detailed_journal TEXT,
+                    word_count INTEGER DEFAULT 0,
+                    habit1 INTEGER DEFAULT 0,
+                    habit2 INTEGER DEFAULT 0,
+                    habit3 INTEGER DEFAULT 0,
+                    habit4 INTEGER DEFAULT 0,
+                    habit5 INTEGER DEFAULT 0,
+                    UNIQUE(month_id, day),
+                    FOREIGN KEY (month_id) REFERENCES months(id) ON DELETE CASCADE
+                )
+            ''')
 
-    conn.commit()
-    conn.close()
+        conn.commit()
+    except Exception as e:
+        # Silently ignore errors if tables already exist
+        conn.rollback()
+    finally:
+        conn.close()
 
 # Get or create month
 
