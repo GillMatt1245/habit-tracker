@@ -188,52 +188,57 @@ def get_or_create_month(year, month):
 # Get month data
 
 
+# Get month data
 def get_month_data(year, month):
     month_id = get_or_create_month(year, month)
     conn = get_db_connection()
     cur = conn.cursor()
-
+    
     if USE_POSTGRES:
+        # Get month info
         cur.execute('SELECT * FROM months WHERE id = %s', (month_id,))
         month_info = cur.fetchone()
-
+        month_description = [desc[0] for desc in cur.description]  # SAVE THIS!
+        
+        # Get habits
         cur.execute(
             'SELECT * FROM habits WHERE month_id = %s ORDER BY habit_number', (month_id,))
         habits = cur.fetchall()
-
+        habits_description = [desc[0] for desc in cur.description]  # SAVE THIS!
+        
+        # Get entries
         cur.execute(
             'SELECT * FROM daily_entries WHERE month_id = %s ORDER BY day', (month_id,))
         entries = cur.fetchall()
-
-        month_dict = dict(
-            zip([desc[0] for desc in cur.description], month_info)) if month_info else {}
-        habits_list = [
-            dict(zip([desc[0] for desc in cur.description], h)) for h in habits]
-        entries_list = [
-            dict(zip([desc[0] for desc in cur.description], e)) for e in entries]
+        entries_description = [desc[0] for desc in cur.description]  # SAVE THIS!
+        
+        # Convert to dicts using SAVED descriptions
+        month_dict = dict(zip(month_description, month_info)) if month_info else {}
+        habits_list = [dict(zip(habits_description, h)) for h in habits]
+        entries_list = [dict(zip(entries_description, e)) for e in entries]
     else:
+        # SQLite (already works correctly with row_factory)
         cur.execute('SELECT * FROM months WHERE id = ?', (month_id,))
         month_info = cur.fetchone()
-
         cur.execute(
             'SELECT * FROM habits WHERE month_id = ? ORDER BY habit_number', (month_id,))
         habits = cur.fetchall()
-
         cur.execute(
             'SELECT * FROM daily_entries WHERE month_id = ? ORDER BY day', (month_id,))
         entries = cur.fetchall()
-
+        
         month_dict = dict(month_info) if month_info else {}
         habits_list = [dict(h) for h in habits]
         entries_list = [dict(e) for e in entries]
-
+    
     conn.close()
-
+    
     return {
         'month_info': month_dict,
         'habits': habits_list,
         'entries': entries_list
     }
+
 
 
 @app.route('/')
@@ -418,3 +423,4 @@ def save_best_day():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
