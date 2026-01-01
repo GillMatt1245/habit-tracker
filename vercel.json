@@ -1,16 +1,5 @@
 {
   "buildCommand": "pip install -r requirements.txt",
   "devCommand": "python api/index.py",
-  "outputDirectory": "./",
-  "env": {
-    "POSTGRES_URL": {
-      "description": "PostgreSQL connection string from Vercel Postgres",
-      "required": true
-    }
-  },
-  "functions": {
-    "api/index.py": {
-      "maxDuration": 60
-    }
-  }
+  "outputDirectory": "./"
 }
